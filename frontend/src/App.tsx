@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
+import './components/table.css'
 import BiddingGrid from './components/BiddingGrid';
 import CallingGrid from './components/CallingGrid';
 import PlayingCard from './components/PlayingCard';
