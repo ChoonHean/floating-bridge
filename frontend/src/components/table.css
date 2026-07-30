@@ -1,0 +1,51 @@
+.table-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1.3fr;
+  grid-template-areas:
+    ".      top    ."
+    "left   center right"
+    ".      bottom .";
+  gap: 12px;
+  width: 500px;
+  height: 400px;
+  margin: 24px auto 48px auto;
+}
+
+.seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.seat-top {
+  grid-area: top;
+}
+
+.seat-bottom {
+  grid-area: bottom;
+}
+
+.seat-left {
+  grid-area: left;
+}
+
+.seat-right {
+  grid-area: right;
+}
+
+.seat-label {
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.hand-count {
+  font-size: 0.8em;
+  color: #666;
+}
+
+.played-card {
+  margin-top: 4px;
+}
