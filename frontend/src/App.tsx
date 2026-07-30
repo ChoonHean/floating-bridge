@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
-import './Components/table.css';
 import BiddingGrid from './components/BiddingGrid';
 import CallingGrid from './components/CallingGrid';
 import PlayingCard from './components/PlayingCard';
@@ -52,12 +51,12 @@ function App() {
 
     socket.onopen = () => {
       setConnected(true);
-      setLog((prev) => [...prev, 'connected'].slice(-10));
+      setLog((prev) => [...prev, 'connected'].slice(-5));
     };
 
     socket.onclose = () => {
       setConnected(false);
-      setLog((prev) => [...prev, 'disconnected'].slice(-10));
+      setLog((prev) => [...prev, 'disconnected'].slice(-5));
     };
 
     socket.onerror = (event) => {
@@ -181,7 +180,7 @@ function App() {
         ))}
       </ul>
 
-      <pre>{JSON.stringify(latestView, null, 2)}</pre>
+      {/* <pre>{JSON.stringify(latestView, null, 2)}</pre> */}
     </div>
   )
 }
