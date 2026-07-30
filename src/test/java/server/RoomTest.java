@@ -20,39 +20,40 @@ class RoomTest {
     @Test
     void join_emptyRoom_assignsSeatZero() {
         Room room = new Room(mapper);
-        int seat = room.join(fakeSession());
+        int seat = room.join(fakeSession(), "");
         assertEquals(0, seat, "first joiner should get the lowest available seat");
     }
 
     @Test
     void join_fourSessions_assignsSeatsZeroThroughThree() {
         Room room = new Room(mapper);
-        assertEquals(0, room.join(fakeSession()));
-        assertEquals(1, room.join(fakeSession()));
-        assertEquals(2, room.join(fakeSession()));
-        assertEquals(3, room.join(fakeSession()));
+        assertEquals(0, room.join(fakeSession(), ""));
+        assertEquals(1, room.join(fakeSession(), ""));
+        assertEquals(2, room.join(fakeSession(), ""));
+        assertEquals(3, room.join(fakeSession(), ""));
     }
 
     @Test
     void join_fifthSession_returnsMinusOne() {
         Room room = new Room(mapper);
-        room.join(fakeSession());
-        room.join(fakeSession());
-        room.join(fakeSession());
-        room.join(fakeSession());
+        room.join(fakeSession(), "");
+        room.join(fakeSession(), "");
+        room.join(fakeSession(), "");
+        room.join(fakeSession(), "");
 
-        int fifth = room.join(fakeSession());
-        assertEquals(-1, fifth, "a full room must reject a fifth join rather than overwriting a seat");
+        int fifth = room.join(fakeSession(), "");
+        assertEquals(-1, fifth,
+                "a full room must reject a fifth join rather than overwriting a seat");
     }
 
     @Test
     void leave_seatedSession_freesTheSeatForReuse() {
         Room room = new Room(mapper);
         WebSocketSession sessionA = fakeSession();
-        int seatA = room.join(sessionA); // seat 0
+        int seatA = room.join(sessionA, ""); // seat 0
 
         room.leave(sessionA);
-        int seatB = room.join(fakeSession());
+        int seatB = room.join(fakeSession(), "");
 
         assertEquals(seatA, seatB, "the freed seat should be reassigned to the next joiner");
     }
@@ -63,7 +64,7 @@ class RoomTest {
         // seatOf() -- this call must return promptly, not hang.
         Room room = new Room(mapper);
         WebSocketSession sessionA = fakeSession();
-        room.join(sessionA); // occupies seat 0
+        room.join(sessionA, ""); // occupies seat 0
 
         WebSocketSession stranger = fakeSession();
         room.leave(stranger); // should be a safe no-op
@@ -77,7 +78,7 @@ class RoomTest {
     void seatOf_seatedSession_returnsCorrectSeat() {
         Room room = new Room(mapper);
         WebSocketSession sessionA = fakeSession();
-        room.join(sessionA);
+        room.join(sessionA, "");
 
         assertEquals(0, room.seatOf(sessionA));
     }
@@ -85,7 +86,7 @@ class RoomTest {
     @Test
     void seatOf_unseatedSession_returnsMinusOne() {
         Room room = new Room(mapper);
-        room.join(fakeSession());
+        room.join(fakeSession(), "");
 
         WebSocketSession stranger = fakeSession();
         assertEquals(-1, room.seatOf(stranger));
@@ -95,7 +96,7 @@ class RoomTest {
     void join_alreadySeatedSession_returnsMinusOne() {
         Room room = new Room(mapper);
         WebSocketSession session = fakeSession();
-        assertEquals(0, room.join(session));
-        assertEquals(-1, room.join(session));
+        assertEquals(0, room.join(session, ""));
+        assertEquals(-1, room.join(session, ""));
     }
 }

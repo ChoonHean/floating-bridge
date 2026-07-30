@@ -10,13 +10,14 @@ function positionFor(actualSeat: number, yourSeat: number): Position {
 
 type TableProps = {
     yourSeat: number;
+    players: string[];
     handLengths: number[];
     played: { first: number; second: string }[];
     tricks: number[];
     currentTurn: number;
 };
 
-export default function Table({ yourSeat, handLengths, played, tricks, currentTurn }: TableProps) {
+export default function Table({ yourSeat, players, handLengths, played, tricks, currentTurn }: TableProps) {
     const playedBySeat = new Map<number, string>(played.map((p) => [p.first, p.second]));
 
     const seats = [0, 1, 2, 3];
@@ -31,7 +32,7 @@ export default function Table({ yourSeat, handLengths, played, tricks, currentTu
                 return (
                     <div key={actualSeat} className={`seat seat-${position}`}>
                         <div className="seat-label">
-                            {isYou ? 'You' : `Seat ${actualSeat}`}
+                            {players[actualSeat]}
                             {actualSeat === currentTurn && ' (turn)'}
                             {`(${tricks[actualSeat]} sets)`}
                         </div>

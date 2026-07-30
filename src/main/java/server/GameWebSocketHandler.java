@@ -30,7 +30,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             switch (type) {
                 case "JOIN_ROOM" -> {
                     Room room = this.manager.getRoom(payload.get("roomId").asText());
-                    int seat = room.join(session);
+                    int seat = room.join(session, payload.get("name").asText());
                     if (seat == -1) {
                         room.sendMessage(session, "room is full");
                     } else if (seat == -2) {

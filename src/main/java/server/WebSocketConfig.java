@@ -17,6 +17,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(@NonNull WebSocketHandlerRegistry registry) {
-        registry.addHandler(handler, "/ws/game").setAllowedOrigins("*");
+        registry.addHandler(handler, "/ws/game").setAllowedOrigins( "https://floating-bridge-woad.vercel.app/");
     }
 }

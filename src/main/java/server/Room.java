@@ -19,6 +19,7 @@ import bridge.State;
 
 public class Room {
     private final WebSocketSession[] seats;
+    private final String[] players;
     private final PriorityBlockingQueue<Integer> availableSeats;
     private GameState game;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -27,6 +28,7 @@ public class Room {
 
     public Room(ObjectMapper mapper) {
         this.seats = new WebSocketSession[4];
+        this.players = new String[4];
         this.availableSeats = new PriorityBlockingQueue<>(List.of(0, 1, 2, 3));
         this.game = new GameState();
         this.mapper = mapper;
@@ -51,7 +53,11 @@ public class Room {
         this.valueMapper.put('K', "KING");
     }
 
-    public synchronized int join(WebSocketSession session) {
+    public synchronized int currentPlayers() {
+        return 4 - this.availableSeats.size();
+    }
+
+    public synchronized int join(WebSocketSession session, String name) {
         if (this.availableSeats.isEmpty()) {
             return -1;
         }
@@ -60,6 +66,8 @@ public class Room {
         }
         int seat = this.availableSeats.poll();
         this.seats[seat] = session;
+        this.players[seat] = name;
+        broadcast(String.format("%s joined. Current players: %d", name, currentPlayers()));
         if (this.availableSeats.isEmpty()) {
             game = game.start();
             broadcast("Room is full. Starting game");
@@ -85,13 +93,13 @@ public class Room {
         }
         this.availableSeats.add(seat);
         this.seats[seat] = null;
-        broadcast(String.format("Player %d left the room", seat));
+        broadcast(String.format("%s left the room", this.players[seat]));
     }
 
     public synchronized void sendMessage(WebSocketSession session, String message)
             throws IOException {
-        session.sendMessage(
-                new TextMessage(mapper.writeValueAsString(new ServerMessage(message, null))));
+        session.sendMessage(new TextMessage(
+                mapper.writeValueAsString(new ServerMessage(message, this.players, null))));
     }
 
     public synchronized void broadcast(String message) {
@@ -100,7 +108,7 @@ public class Room {
             if (session != null) {
                 try {
                     session.sendMessage(new TextMessage(mapper.writeValueAsString(
-                            new ServerMessage(message, this.game.getView(seat)))));
+                            new ServerMessage(message, this.players, this.game.getView(seat)))));
                 } catch (IOException e) {
                     System.err.println(e.getMessage());
                 }
@@ -120,8 +128,8 @@ public class Room {
         try {
             game = game.bid(seat, suit, value);
             broadcast(suit.flatMap(
-                    x -> value.map(y -> String.format("Player %d bidded %d %s", seat, y, x)))
-                    .orElse("Player " + seat + " passed"));
+                    x -> value.map(y -> String.format("%s bidded %d %s", this.players[seat], y, x)))
+                    .orElse(this.players[seat] + " passed"));
 
             if (game.state() == State.WASHING) {
                 broadcast("All players passed. Washing...");
@@ -160,7 +168,7 @@ public class Room {
         Pair<String, String> pair = decodeCard(card);
         try {
             game = game.playCard(seat, pair.first(), pair.second());
-            broadcast(String.format("Player %d played %s %s", seat, pair.second(), pair.first()));
+            broadcast(String.format("%s played %s %s", this.players[seat], pair.second(), pair.first()));
         } catch (Exception e) {
             handleException(session, e);
         }

@@ -244,7 +244,9 @@ public class GameState {
     }
 
     public GameView getView(int seat) {
-        if (this.bidHistory.isEmpty()) {
+        if (this.state == State.WAITING) {
+            return null;
+        } else if (this.bidHistory.isEmpty()) {
             return new GameView(this.state, seat, List.of(13, 13, 13, 13), this.hands.get(seat),
                     this.bidHistory, null, false, null, null, null, null, List.of(0, 0, 0, 0),
                     score(), this.currentTurn, List.of(), hasEnded());

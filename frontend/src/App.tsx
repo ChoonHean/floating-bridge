@@ -31,12 +31,15 @@ type GameView = {
 
 type ServerMessage = {
   log: string;
+  players: string[];
   gameView: GameView | null;
 };
 
 function App() {
   const [connected, setConnected] = useState(false);
   const [seat, setSeat] = useState<number | null>(null);
+  const [name, setName] = useState<string>('');
+  const [players, setPlayers] = useState<string[]>(["", "", "", ""]);
   const [latestView, setLatestView] = useState<GameView | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
@@ -47,8 +50,7 @@ function App() {
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket('ws://localhost:8080/ws/game');
-    socketRef.current = socket;
+    const socket = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws/game'); socketRef.current = socket;
 
     socket.onopen = () => {
       setConnected(true);
@@ -66,7 +68,8 @@ function App() {
 
     socket.onmessage = (event) => {
       const message: ServerMessage = JSON.parse(event.data);
-      setLog((prev) => [...prev, `received: ${message.log}`].slice(-10));
+      setLog((prev) => [...prev, `received: ${message.log}`].slice(-5));
+      setPlayers(message.players);
       if (message.gameView != null) {
         setLatestView(message.gameView);
         setSeat(message.gameView.seat);
@@ -89,16 +92,30 @@ function App() {
   }
 
   function handleJoinClick() {
-    sendMessage('JOIN_ROOM', { roomId: 'test1' });
+    sendMessage('JOIN_ROOM', { roomId: 'test1', name: name.trim() });
   }
 
   return (
     <div>
       <h1>Floating Bridge</h1>
       <p>Status: {connected ? 'connected' : 'disconnected'}</p>
-      {seat === null && <button onClick={handleJoinClick}>Join Room</button>}
+      {seat === null && (
+        <div>
+          <input
+            type="text"
+            placeholder="Your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <button onClick={handleJoinClick} disabled={name.trim() === ''}>
+            Join Room
+          </button>
+        </div>
+      )}
 
-      <p>Player {latestView?.currentTurn}'s turn</p>
+      {latestView &&
+        <p>{players[latestView!.currentTurn]}'s turn</p>
+      }
 
       {latestView?.state === 'BIDDING' && (
         <BiddingGrid
@@ -139,6 +156,7 @@ function App() {
       {seat !== null && latestView && (
         <Table
           yourSeat={seat}
+          players={players}
           handLengths={latestView.handLengths}
           played={latestView.played}
           tricks={latestView.tricks}
