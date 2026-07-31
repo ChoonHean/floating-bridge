@@ -10,7 +10,7 @@ function positionFor(actualSeat: number, yourSeat: number): Position {
 
 type TableProps = {
     yourSeat: number;
-    players: (string | null)[];
+    players: string[];
     handLengths: number[];
     played: { first: number; second: string }[];
     tricks: number[];
