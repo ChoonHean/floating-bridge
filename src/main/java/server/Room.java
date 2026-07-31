@@ -95,6 +95,7 @@ public class Room {
         }
         this.availableSeats.add(seat);
         this.seats[seat] = null;
+        this.players[seat] = null;
         broadcastGameMessage(String.format("%s left the room", this.players[seat]));
     }
 

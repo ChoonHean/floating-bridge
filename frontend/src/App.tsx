@@ -104,6 +104,7 @@ function App() {
   }
 
   return (
+    //Title and join room button
     <div>
       <h1>Floating Bridge</h1>
       <p>Status: {connected ? 'connected' : 'disconnected'}</p>
@@ -121,6 +122,7 @@ function App() {
         </div>
       )}
 
+      
       <p>Current players: {players.filter((player): player is string => player !== null).join(", ")}</p>
 
       {latestView &&
@@ -199,7 +201,6 @@ function App() {
       </button>}
       
       <h2>💬 Chat</h2>
-
       <div className="chat-box">
         {chat.map((line, i) => (
           <div key={i}>{line}</div>
@@ -213,6 +214,7 @@ function App() {
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             sendChat();
+            setChatInput('');
           }
         }}
       />
