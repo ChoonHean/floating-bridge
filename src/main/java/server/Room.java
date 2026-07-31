@@ -96,6 +96,7 @@ public class Room {
         this.availableSeats.add(seat);
         this.seats[seat] = null;
         broadcastGameMessage(String.format("%s left the room", this.players[seat]));
+        this.players[seat] = null;
     }
 
     TextMessage makeGameMessage(String message, GameView gameView) throws IOException {
@@ -190,7 +191,8 @@ public class Room {
         }
     }
 
-    public synchronized void chatMessage(WebSocketSession session, String message) throws IOException {
+    public synchronized void chatMessage(WebSocketSession session, String message)
+            throws IOException {
         int seat = seatOf(session);
         broadcastChatMessage(makeChatMessage(this.players[seat], message));
     }

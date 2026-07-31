@@ -105,6 +105,7 @@ function App() {
 
   return (
     <div>
+      {/* Title and join room button */}
       <h1>Floating Bridge</h1>
       <p>Status: {connected ? 'connected' : 'disconnected'}</p>
       {seat === null && (
@@ -121,12 +122,15 @@ function App() {
         </div>
       )}
 
+      {/* Display players in the room*/}
       <p>Current players: {players.filter((player): player is string => player !== null).join(", ")}</p>
 
+      {/* Display whose turn it currently is */}
       {latestView &&
         <p>{players[latestView!.currentTurn]}'s turn</p>
       }
 
+      {/* Bidding grid, only visible during bidding phase */}
       {latestView?.state === 'BIDDING' && (
         <BiddingGrid
           currentBid={latestView.bid}
@@ -141,6 +145,7 @@ function App() {
         />
       )}
 
+      {/* Card grid to choose a partner card, only visible for bidder during calling phase */}
       {latestView?.state === 'CALLING' && latestView?.currentTurn === seat && (
         <CallingGrid
           yourTurn={latestView.currentTurn === seat}
@@ -150,6 +155,7 @@ function App() {
         />
       )}
 
+      {/* Bidder, partner and total tricks so far */}
       {latestView && latestView?.state !== "BIDDING" && (
         <>
           <p>Bidder: Seat {latestView?.bidder}</p>
@@ -163,6 +169,7 @@ function App() {
         </>
       )}
 
+      {/* Table which shows players and which card they played */}
       {seat !== null && latestView && (
         <Table
           yourSeat={seat}
@@ -174,6 +181,7 @@ function App() {
         />
       )}
 
+      {/* Cards in your hand and confirm play button*/}
       <h2>Your Hand</h2>
       <div style={{ display: "flex", gap: "8px" }}>
         {latestView?.hand.map((card: string) => (
@@ -186,7 +194,6 @@ function App() {
           />
         ))}
       </div>
-
       {latestView?.state == "PLAYING" && <button
         disabled={selectedCard === null || latestView?.currentTurn !== seat}
         onClick={() => {
@@ -197,15 +204,14 @@ function App() {
       >
         Confirm Play
       </button>}
-      
-      <h2>💬 Chat</h2>
 
+      {/* Chat */}
+      <h2>💬 Chat</h2>
       <div className="chat-box">
         {chat.map((line, i) => (
           <div key={i}>{line}</div>
         ))}
       </div>
-
       <input
         value={chatInput}
         onChange={(e) => setChatInput(e.target.value)}
@@ -213,14 +219,17 @@ function App() {
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             sendChat();
+            setChatInput('');
           }
         }}
       />
 
+      {/* Display score, only when game ends */}
       {latestView?.hasEnded &&
         <><h2>Tricks: {latestView.score}-{13 - latestView.score}</h2><h2>Contract {latestView.score >= 6 + latestView.bid!.value ? "Made" : "Failed"}</h2></>
       }
 
+      {/* Message log, mainly for tracing now */}
       <h2>Message log</h2>
       <ul>
         {log.map((entry, i) => (
