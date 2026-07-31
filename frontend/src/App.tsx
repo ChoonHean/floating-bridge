@@ -125,11 +125,6 @@ function App() {
       {/* Display players in the room*/}
       <p>Current players: {players.filter((player): player is string => player !== null).join(", ")}</p>
 
-      {/* Display whose turn it currently is */}
-      {latestView &&
-        <p>{players[latestView!.currentTurn]}'s turn</p>
-      }
-
       {/* Bidding grid, only visible during bidding phase */}
       {latestView?.state === 'BIDDING' && (
         <BiddingGrid
@@ -146,7 +141,7 @@ function App() {
       )}
 
       {/* Card grid to choose a partner card, only visible for bidder during calling phase */}
-      {latestView?.state === 'CALLING' && latestView?.currentTurn === seat && (
+      {latestView?.state === 'CALLING' && latestView.currentTurn === seat && (
         <CallingGrid
           yourTurn={latestView.currentTurn === seat}
           onConfirmCall={(card) =>
@@ -156,18 +151,35 @@ function App() {
       )}
 
       {/* Bidder, partner and total tricks so far */}
-      {latestView && latestView?.state !== "BIDDING" && (
+      {latestView && latestView.state !== "BIDDING" && (
         <>
-          <p>Bidder: Seat {latestView?.bidder}</p>
+          <p>Bidder: {players[latestView.bidder!]}</p>
           <p>
-            Partner:{" "}
-            {latestView?.partner === null
-              ? "Unrevealed"
-              : `Seat ${latestView?.partner}`}
+            Partner:
+            {latestView.partner === null
+              ? " Unrevealed"
+              : ` ${players[latestView.partner]}`}
           </p>
-          <p>Bidder's tricks: {latestView?.score}</p>
+          <p>Bidder's tricks: {latestView.score}</p>
         </>
       )}
+
+      {/* Shows bid history */}
+      {latestView && (
+        <>
+          <h2>Bid History</h2>
+          {latestView.bidHistory.map((p, i) => (
+            <p key={i}>
+              {players[p.first]}: {p.second.value} {p.second.suit}
+            </p>
+          ))}
+        </>
+      )}
+
+      {/* Display whose turn it currently is */}
+      {latestView &&
+        <h3>{players[latestView.currentTurn]}'s turn</h3>
+      }
 
       {/* Table which shows players and which card they played */}
       {seat !== null && latestView && (
@@ -183,19 +195,31 @@ function App() {
 
       {/* Cards in your hand and confirm play button*/}
       <h2>Your Hand</h2>
-      <div style={{ display: "flex", gap: "8px" }}>
-        {latestView?.hand.map((card: string) => (
-          <PlayingCard
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        {latestView?.hand.map((card: string, i: number) => (
+          <div
             key={card}
-            code={card}
-            selected={card === selectedCard}
-            onClick={() => { setSelectedCard(card); }
-            }
-          />
+            style={{
+              marginLeft: i === 0 ? 0 : "-40px",
+              zIndex: i,
+            }}
+          >
+            <PlayingCard
+              code={card}
+              selected={card === selectedCard}
+              onClick={() => setSelectedCard(card)}
+            />
+          </div>
         ))}
       </div>
       {latestView?.state == "PLAYING" && <button
-        disabled={selectedCard === null || latestView?.currentTurn !== seat}
+        disabled={selectedCard === null || latestView.currentTurn !== seat}
         onClick={() => {
           if (selectedCard === null) return; // defensive; button should already be disabled
           sendMessage('PLAY_CARD', { roomId: 'test1', card: selectedCard });
