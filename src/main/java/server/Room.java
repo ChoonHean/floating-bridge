@@ -13,6 +13,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import bridge.GameState;
+import bridge.GameView;
 import bridge.Pair;
 import bridge.State;
 
@@ -67,10 +68,11 @@ public class Room {
         int seat = this.availableSeats.poll();
         this.seats[seat] = session;
         this.players[seat] = name;
-        broadcast(String.format("%s joined. Current players: %d", name, currentPlayers()));
+        broadcastGameMessage(
+                String.format("%s joined. Current players: %d", name, currentPlayers()));
         if (this.availableSeats.isEmpty()) {
             game = game.start();
-            broadcast("Room is full. Starting game");
+            broadcastGameMessage("Room is full. Starting game");
         }
         return seat;
     }
@@ -93,22 +95,24 @@ public class Room {
         }
         this.availableSeats.add(seat);
         this.seats[seat] = null;
-        broadcast(String.format("%s left the room", this.players[seat]));
+        broadcastGameMessage(String.format("%s left the room", this.players[seat]));
     }
 
-    public synchronized void sendMessage(WebSocketSession session, String message)
-            throws IOException {
-        session.sendMessage(new TextMessage(
-                mapper.writeValueAsString(new ServerMessage(message, this.players, null))));
+    TextMessage makeGameMessage(String message, GameView gameView) throws IOException {
+        return new TextMessage(
+                mapper.writeValueAsString(new ServerMessage(message, this.players, gameView)));
     }
 
-    public synchronized void broadcast(String message) {
+    TextMessage makeChatMessage(String sender, String message) throws IOException {
+        return new TextMessage(mapper.writeValueAsString(new ChatMessage(sender, message)));
+    }
+
+    public synchronized void broadcastGameMessage(String message) {
         int seat = 0;
         for (WebSocketSession session : this.seats) {
             if (session != null) {
                 try {
-                    session.sendMessage(new TextMessage(mapper.writeValueAsString(
-                            new ServerMessage(message, this.players, this.game.getView(seat)))));
+                    session.sendMessage(makeGameMessage(message, this.game.getView(seat)));
                 } catch (IOException e) {
                     System.err.println(e.getMessage());
                 }
@@ -117,9 +121,21 @@ public class Room {
         }
     }
 
+    public synchronized void broadcastChatMessage(TextMessage message) {
+        for (WebSocketSession session : this.seats) {
+            if (session != null) {
+                try {
+                    session.sendMessage(message);
+                } catch (IOException e) {
+                    System.err.println(e.getMessage());
+                }
+            }
+        }
+    }
+
     private void handleException(WebSocketSession session, Exception e) throws IOException {
         System.err.println(e);
-        sendMessage(session, e.getMessage());
+        session.sendMessage(makeGameMessage(e.getMessage(), null));
     }
 
     public synchronized void bid(WebSocketSession session, Optional<String> suit,
@@ -127,20 +143,19 @@ public class Room {
         int seat = seatOf(session);
         try {
             game = game.bid(seat, suit, value);
-            broadcast(suit.flatMap(
+            broadcastGameMessage(suit.flatMap(
                     x -> value.map(y -> String.format("%s bidded %d %s", this.players[seat], y, x)))
                     .orElse(this.players[seat] + " passed"));
 
             if (game.state() == State.WASHING) {
-                broadcast("All players passed. Washing...");
+                broadcastGameMessage("All players passed. Washing...");
                 scheduler.schedule(() -> {
                     synchronized (this) {
                         game = game.start();
-                        broadcast("Wash complete");
+                        broadcastGameMessage("Wash complete");
                     }
                 }, 3, TimeUnit.SECONDS);
             }
-
         } catch (Exception e) {
             handleException(session, e);
         }
@@ -157,7 +172,7 @@ public class Room {
         Pair<String, String> pair = decodeCard(card);
         try {
             game = game.callPartner(seat, pair.first(), pair.second());
-            broadcast(String.format("Partner card: %s %s", pair.second(), pair.first()));
+            broadcastGameMessage(String.format("Partner card: %s %s", pair.second(), pair.first()));
         } catch (Exception e) {
             handleException(session, e);
         }
@@ -168,9 +183,15 @@ public class Room {
         Pair<String, String> pair = decodeCard(card);
         try {
             game = game.playCard(seat, pair.first(), pair.second());
-            broadcast(String.format("%s played %s %s", this.players[seat], pair.second(), pair.first()));
+            broadcastGameMessage(String.format("%s played %s %s", this.players[seat], pair.second(),
+                    pair.first()));
         } catch (Exception e) {
             handleException(session, e);
         }
+    }
+
+    public synchronized void chatMessage(WebSocketSession session, String message) throws IOException {
+        int seat = seatOf(session);
+        broadcastChatMessage(makeChatMessage(this.players[seat], message));
     }
 }
