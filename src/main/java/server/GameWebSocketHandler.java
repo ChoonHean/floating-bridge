@@ -32,11 +32,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     Room room = this.manager.getRoom(payload.get("roomId").asText());
                     int seat = room.join(session, payload.get("name").asText());
                     if (seat == -1) {
-                        room.sendMessage(session, "room is full");
+                        session.sendMessage(room.makeGameMessage("room is full", null));
                     } else if (seat == -2) {
-                        room.sendMessage(session, "already joined");
+                        session.sendMessage(room.makeGameMessage("already joined", null));
                     } else {
-                        room.sendMessage(session, "success: seat " + seat);
+                        session.sendMessage(room.makeGameMessage("success: seat " + seat, null));
                         this.manager.addSession(session, room);
                     }
                 }
@@ -63,6 +63,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "PLAY_CARD" -> {
                     Room room = this.manager.getRoom(payload.get("roomId").asText());
                     room.playCard(session, payload.get("card").asText());
+                }
+
+                case "CHAT" -> {
+                    Room room = this.manager.getRoom(payload.get("roomId").asText());
+                    room.chatMessage(session, payload.get("message").asText());
                 }
 
                 default -> session.sendMessage(
