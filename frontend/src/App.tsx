@@ -29,20 +29,16 @@ type GameView = {
   hasEnded: boolean;
 };
 
-type ServerMessage = {
-  log: string;
-  players: string[];
-  gameView: GameView | null;
-};
-
 function App() {
   const [connected, setConnected] = useState(false);
   const [seat, setSeat] = useState<number | null>(null);
   const [name, setName] = useState<string>('');
-  const [players, setPlayers] = useState<string[]>(["", "", "", ""]);
+  const [players, setPlayers] = useState<(string | null)[]>(["", "", "", ""]);
   const [latestView, setLatestView] = useState<GameView | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
+  const [chatInput, setChatInput] = useState<string>('');
+  const [chat, setChat] = useState<string[]>([]);
   // useRef, not useState, for the socket itself: we need a stable reference
   // to the SAME WebSocket object across re-renders so we can call .send()
   // on it later -- useState would be for a VALUE that triggers re-renders
@@ -67,12 +63,20 @@ function App() {
     };
 
     socket.onmessage = (event) => {
-      const message: ServerMessage = JSON.parse(event.data);
-      setLog((prev) => [...prev, `received: ${message.log}`].slice(-5));
-      setPlayers(message.players);
-      if (message.gameView != null) {
-        setLatestView(message.gameView);
-        setSeat(message.gameView.seat);
+      const message = JSON.parse(event.data);
+      switch (message.type) {
+        case 'GAME_STATE':
+          setLog((prev) => [...prev, `received: ${message.log}`].slice(-5));
+          setPlayers(message.players);
+          if (message.gameView != null) {
+            setLatestView(message.gameView);
+            setSeat(message.gameView.seat);
+          }
+          break;
+
+        case 'CHAT':
+          setChat((prev) => [...prev, `${message.sender}: ${message.message}`].slice(-10));
+          break;
       }
     };
 
@@ -95,6 +99,10 @@ function App() {
     sendMessage('JOIN_ROOM', { roomId: 'test1', name: name.trim() });
   }
 
+  function sendChat() {
+    sendMessage('CHAT', { roomId: 'test1', message: chatInput });
+  }
+
   return (
     <div>
       <h1>Floating Bridge</h1>
@@ -112,6 +120,8 @@ function App() {
           </button>
         </div>
       )}
+
+      <p>Current players: {players.filter((player): player is string => player !== null).join(", ")}</p>
 
       {latestView &&
         <p>{players[latestView!.currentTurn]}'s turn</p>
@@ -187,6 +197,25 @@ function App() {
       >
         Confirm Play
       </button>}
+      
+      <h2>💬 Chat</h2>
+
+      <div className="chat-box">
+        {chat.map((line, i) => (
+          <div key={i}>{line}</div>
+        ))}
+      </div>
+
+      <input
+        value={chatInput}
+        onChange={(e) => setChatInput(e.target.value)}
+        placeholder="Type and press enter to send"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            sendChat();
+          }
+        }}
+      />
 
       {latestView?.hasEnded &&
         <><h2>Tricks: {latestView.score}-{13 - latestView.score}</h2><h2>Contract {latestView.score >= 6 + latestView.bid!.value ? "Made" : "Failed"}</h2></>
