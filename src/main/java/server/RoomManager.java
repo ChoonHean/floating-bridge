@@ -11,15 +11,17 @@ public class RoomManager {
     private final Map<String, Room> rooms;
     private final Map<WebSocketSession, Room> sessionFinder;
     private final ObjectMapper mapper;
+    private final TelegramNotifier notifier;
 
-    RoomManager(ObjectMapper mapper) {
+    RoomManager(ObjectMapper mapper, TelegramNotifier notifier) {
         this.rooms = new ConcurrentHashMap<>();
         this.sessionFinder = new ConcurrentHashMap<>();
         this.mapper = mapper;
+        this.notifier = notifier;
     }
 
     public Room getRoom(String roomId) {
-        return this.rooms.computeIfAbsent(roomId, id -> new Room(mapper));
+        return this.rooms.computeIfAbsent(roomId, id -> new Room(mapper, notifier));
     }
 
     public Room findRoom(WebSocketSession session) {

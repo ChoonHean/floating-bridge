@@ -2,12 +2,10 @@ package server;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.web.socket.WebSocketSession;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 class RoomTest {
-    private final ObjectMapper mapper = new ObjectMapper();
 
     // WebSocketSession is an interface, so Mockito can fake it without a
     // real network connection. We don't need to stub any behavior on it --
@@ -19,14 +17,14 @@ class RoomTest {
 
     @Test
     void join_emptyRoom_assignsSeatZero() {
-        Room room = new Room(mapper);
+        Room room = new Room();
         int seat = room.join(fakeSession(), "");
         assertEquals(0, seat, "first joiner should get the lowest available seat");
     }
 
     @Test
     void join_fourSessions_assignsSeatsZeroThroughThree() {
-        Room room = new Room(mapper);
+        Room room = new Room();
         assertEquals(0, room.join(fakeSession(), ""));
         assertEquals(1, room.join(fakeSession(), ""));
         assertEquals(2, room.join(fakeSession(), ""));
@@ -35,7 +33,7 @@ class RoomTest {
 
     @Test
     void join_fifthSession_returnsMinusOne() {
-        Room room = new Room(mapper);
+        Room room = new Room();
         room.join(fakeSession(), "");
         room.join(fakeSession(), "");
         room.join(fakeSession(), "");
@@ -48,7 +46,7 @@ class RoomTest {
 
     @Test
     void leave_seatedSession_freesTheSeatForReuse() {
-        Room room = new Room(mapper);
+        Room room = new Room();
         WebSocketSession sessionA = fakeSession();
         int seatA = room.join(sessionA, ""); // seat 0
 
@@ -62,7 +60,7 @@ class RoomTest {
     void leave_unseatedSession_doesNothing() {
         // Regression test for the infinite-loop bug from the original
         // seatOf() -- this call must return promptly, not hang.
-        Room room = new Room(mapper);
+        Room room = new Room();
         WebSocketSession sessionA = fakeSession();
         room.join(sessionA, ""); // occupies seat 0
 
@@ -76,7 +74,7 @@ class RoomTest {
 
     @Test
     void seatOf_seatedSession_returnsCorrectSeat() {
-        Room room = new Room(mapper);
+        Room room = new Room();
         WebSocketSession sessionA = fakeSession();
         room.join(sessionA, "");
 
@@ -85,7 +83,7 @@ class RoomTest {
 
     @Test
     void seatOf_unseatedSession_returnsMinusOne() {
-        Room room = new Room(mapper);
+        Room room = new Room();
         room.join(fakeSession(), "");
 
         WebSocketSession stranger = fakeSession();
@@ -94,7 +92,7 @@ class RoomTest {
 
     @Test
     void join_alreadySeatedSession_returnsMinusOne() {
-        Room room = new Room(mapper);
+        Room room = new Room();
         WebSocketSession session = fakeSession();
         assertEquals(0, room.join(session, ""));
         assertEquals(-1, room.join(session, ""));
