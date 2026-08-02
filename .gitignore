@@ -11,3 +11,7 @@ frontend/dist/
 
 # OS
 .DS_Store
+
+.gitignore
+WebSocketConfig.java
+application.properties

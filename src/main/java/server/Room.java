@@ -1,6 +1,7 @@
 package server;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,6 @@ import bridge.GameView;
 import bridge.Pair;
 import bridge.State;
 
-
 public class Room {
     private final WebSocketSession[] seats;
     private final String[] players;
@@ -25,13 +25,43 @@ public class Room {
     private GameState game;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final ObjectMapper mapper;
+    private final TelegramNotifier notifier;
     private final Map<Character, String> suitMapper, valueMapper;
 
-    public Room(ObjectMapper mapper) {
+    public Room() {
         this.seats = new WebSocketSession[4];
         this.players = new String[4];
         this.availableSeats = new PriorityBlockingQueue<>(List.of(0, 1, 2, 3));
         this.game = new GameState();
+        this.notifier = null;
+        this.mapper = null;
+        this.suitMapper = new HashMap<>();
+        this.suitMapper.put('c', "CLUBS");
+        this.suitMapper.put('d', "DIAMONDS");
+        this.suitMapper.put('h', "HEARTS");
+        this.suitMapper.put('s', "SPADES");
+        this.valueMapper = new HashMap<>();
+        this.valueMapper.put('A', "ACE");
+        this.valueMapper.put('2', "TWO");
+        this.valueMapper.put('3', "THREE");
+        this.valueMapper.put('4', "FOUR");
+        this.valueMapper.put('5', "FIVE");
+        this.valueMapper.put('6', "SIX");
+        this.valueMapper.put('7', "SEVEN");
+        this.valueMapper.put('8', "EIGHT");
+        this.valueMapper.put('9', "NINE");
+        this.valueMapper.put('T', "TEN");
+        this.valueMapper.put('J', "JACK");
+        this.valueMapper.put('Q', "QUEEN");
+        this.valueMapper.put('K', "KING");
+    }
+
+    public Room(ObjectMapper mapper, TelegramNotifier notifier) {
+        this.seats = new WebSocketSession[4];
+        this.players = new String[4];
+        this.availableSeats = new PriorityBlockingQueue<>(List.of(0, 1, 2, 3));
+        this.game = new GameState();
+        this.notifier = notifier;
         this.mapper = mapper;
         this.suitMapper = new HashMap<>();
         this.suitMapper.put('c', "CLUBS");
@@ -58,6 +88,17 @@ public class Room {
         return 4 - this.availableSeats.size();
     }
 
+    public synchronized int seatOf(WebSocketSession session) {
+        int seat = 3;
+        while (seat >= 0) {
+            if (session.equals(this.seats[seat])) {
+                break;
+            }
+            seat--;
+        }
+        return seat;
+    }
+
     public synchronized int join(WebSocketSession session, String name) {
         if (this.availableSeats.isEmpty()) {
             return -1;
@@ -70,20 +111,10 @@ public class Room {
         this.players[seat] = name;
         broadcastGameMessage(
                 String.format("%s joined. Current players: %d", name, currentPlayers()));
+        notifyOccupancy();
         if (this.availableSeats.isEmpty()) {
             game = game.start();
             broadcastGameMessage("Room is full. Starting game");
-        }
-        return seat;
-    }
-
-    public synchronized int seatOf(WebSocketSession session) {
-        int seat = 3;
-        while (seat >= 0) {
-            if (session.equals(this.seats[seat])) {
-                break;
-            }
-            seat--;
         }
         return seat;
     }
@@ -97,6 +128,16 @@ public class Room {
         this.seats[seat] = null;
         broadcastGameMessage(String.format("%s left the room", this.players[seat]));
         this.players[seat] = null;
+        notifyOccupancy();
+    }
+
+    private void notifyOccupancy() {
+        String text = Arrays.stream(this.players).sequential()
+                .reduce(new StringBuilder("Current players: "),
+                        (sb, player) -> player != null ? sb.append(player).append(", ") : sb,
+                        (x, y) -> x.append(y))
+                .toString();
+        scheduler.execute(() -> this.notifier.updateOccupancy(text));
     }
 
     TextMessage makeGameMessage(String message, GameView gameView) throws IOException {
